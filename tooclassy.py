@@ -34,7 +34,8 @@ class ExpandRules(dict):
 class RenderRules(dict):
     def __init__(self, render_rules):
         self.update(render_rules)
-    
+        self.size = 1
+        
     def calculatePath(self, instructions):
         temp_surf = cairo.ImageSurface(cairo.FORMAT_A8, 1, 1)
         ctx = cairo.Context(temp_surf)
@@ -93,14 +94,19 @@ class RenderRules(dict):
 if __name__ == "__main__":
     val = 2
     unit = 300
-    er = ExpandRules("F", {"F":"F[+F]F[-F][F]"})
+
+    er = ExpandRules("a", {"F":"<F>", "a":"F[+x]Fb", "b":"F[-y]Fa", "x":"a", "y":"b"})
     
-    rr = RenderRules({"F":"ctx.rel_line_to(%f,0)" % (1. * unit / (3**val)),
+    rr = RenderRules({"F":"ctx.rel_line_to(self.size,0)",
+                      #"a":"ctx.rel_line_to(%f,0)" % (1. * unit / (1.36**val)),
+                      #"b":"ctx.rel_line_to(%f,0)" % (1. * unit / (1.36**val)),
                       "[":"push_ctx(ctx)",
                       "]":"pop_ctx(ctx)",
-                      "-":"ctx.rotate(-20 * pi / 180)",
-                      "+":"ctx.rotate(+20 * pi / 180)"})
+                      "<":"self.size = self.size/1.36",
+                      ">":"self.size = self.size*1.36",
+                      "-":"ctx.rotate(- pi / 4)",
+                      "+":"ctx.rotate(+ pi / 4)"})
 
-    rr.renderString(er.nIterations(5), "pg25-b.svg")
+    rr.renderString(er.nIterations(8), "pg25-b.svg")
 
                      
