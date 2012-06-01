@@ -41,7 +41,7 @@ class RenderRules(dict):
         ctx = cairo.Context(temp_surf)
 
         ctx.move_to(0,0)
-        #ctx.rotate(pi / 2)
+        #ctx.rotate(- pi / 2)
         for instruction in instructions:
             if instruction not in self:
                 continue
@@ -68,19 +68,16 @@ class RenderRules(dict):
         ctx = cairo.Context(surf)
 
         # TODO (logic about scale and shift based on path.path_extents()
-        print extents
         xmin, ymin, xmax, ymax = extents
         x_extent = xmax - xmin
         y_extent = ymax - ymin
         x_center, y_center = x_extent/2., y_extent/2.
         scale_factor = 0.9*min(size[0] / x_extent, size[1] / y_extent)
         x_rextent, y_rextent = scale_factor*x_extent, scale_factor*y_extent
-        print x_rextent, y_rextent
         x_recenter, y_recenter = (size[0]-x_rextent)/2., (size[1]-y_rextent)/2.
-        print x_recenter, y_recenter
         ctx.translate(x_recenter-scale_factor*xmin, y_recenter-scale_factor*ymin)
         ctx.scale(scale_factor, scale_factor)
-        #ctx.rotate(pi / 2)
+        #ctx.rotate(- pi / 2)
         ctx.append_path(path)
         ctx.stroke()
         
@@ -93,20 +90,19 @@ class RenderRules(dict):
 
 if __name__ == "__main__":
     val = 2
-    unit = 300
+    unit = 1
+    scale_factor = 1
 
     er = ExpandRules("a", {"F":"<F>", "a":"F[+x]Fb", "b":"F[-y]Fa", "x":"a", "y":"b"})
     
-    rr = RenderRules({"F":"ctx.rel_line_to(self.size,0)",
-                      #"a":"ctx.rel_line_to(%f,0)" % (1. * unit / (1.36**val)),
-                      #"b":"ctx.rel_line_to(%f,0)" % (1. * unit / (1.36**val)),
+    rr = RenderRules({"F":"ctx.rel_line_to(unit,0)",
                       "[":"push_ctx(ctx)",
                       "]":"pop_ctx(ctx)",
-                      "<":"self.size = self.size/1.36",
-                      ">":"self.size = self.size*1.36",
+                      ">":"ctx.scale(scale_factor/1.36, scale_factor/1.36)",
+                      "<":"ctx.scale(scale_factor*1.36, scale_factor*1.36)",
                       "-":"ctx.rotate(- pi / 4)",
                       "+":"ctx.rotate(+ pi / 4)"})
 
-    rr.renderString(er.nIterations(8), "pg25-b.svg")
+    rr.renderString(er.nIterations(20), "pg25-b.svg")
 
                      
