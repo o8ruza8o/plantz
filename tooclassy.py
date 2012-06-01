@@ -90,19 +90,22 @@ class RenderRules(dict):
 
 if __name__ == "__main__":
     val = 2
-    unit = 1
+    unit = 10
     scale_factor = 1
 
-    er = ExpandRules("a", {"F":"<F>", "a":"F[+x]Fb", "b":"F[-y]Fa", "x":"a", "y":"b"})
+    er = ExpandRules("[gr]a++", {"F":"<F>", "a":"F[+x]FFb", "b":"F[-y]Fa", "x":"a", "y":"b", "r":"F[pFq]FFl", "l":"F[mFw]FFr", "q":"l", "w":"r"})
     
     rr = RenderRules({"F":"ctx.rel_line_to(unit,0)",
                       "[":"push_ctx(ctx)",
                       "]":"pop_ctx(ctx)",
                       ">":"ctx.scale(scale_factor/1.36, scale_factor/1.36)",
                       "<":"ctx.scale(scale_factor*1.36, scale_factor*1.36)",
-                      "-":"ctx.rotate(- pi / 4)",
-                      "+":"ctx.rotate(+ pi / 4)"})
+                      "g":"ctx.rotate(pi)",
+                      "-":"ctx.rotate(- 3*pi / 8)",
+                      "+":"ctx.rotate(+ pi / 4)",
+                      "p":"ctx.rotate(+ pi / 8)",
+                      "m":"ctx.rotate(- pi / 12)"})
 
-    rr.renderString(er.nIterations(20), "pg25-b.svg")
+    rr.renderString(er.nIterations(28), "plan28.svg", size=(1000, 1000))
 
-                     
+                  
