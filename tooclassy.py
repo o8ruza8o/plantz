@@ -22,6 +22,7 @@ class ExpandRules(dict):
 
         string = self.startString
         # Todo: seed largest expansion in here . . .
+        # Todo: line width as a function of x
         for x in range(n):
             new_string = ""
             for character in string:
@@ -29,7 +30,6 @@ class ExpandRules(dict):
             string = new_string
         self.expansions[n] = string
         return string
-
 
 class RenderRules(dict):
     def __init__(self, render_rules):
@@ -41,7 +41,6 @@ class RenderRules(dict):
         ctx = cairo.Context(temp_surf)
 
         ctx.move_to(0,0)
-        #ctx.rotate(- pi / 2)
         for instruction in instructions:
             if instruction not in self:
                 continue
@@ -67,7 +66,7 @@ class RenderRules(dict):
         # Get a context object
         ctx = cairo.Context(surf)
 
-        # TODO (logic about scale and shift based on path.path_extents()
+        # Logic about scale and shift based on path.path_extents()
         xmin, ymin, xmax, ymax = extents
         x_extent = xmax - xmin
         y_extent = ymax - ymin
@@ -75,37 +74,62 @@ class RenderRules(dict):
         scale_factor = 0.9*min(size[0] / x_extent, size[1] / y_extent)
         x_rextent, y_rextent = scale_factor*x_extent, scale_factor*y_extent
         x_recenter, y_recenter = (size[0]-x_rextent)/2., (size[1]-y_rextent)/2.
-        ctx.translate(x_recenter-scale_factor*xmin, y_recenter-scale_factor*ymin)
+        x_0, y_0 = x_recenter-scale_factor*xmin, y_recenter-scale_factor*ymin
+        ctx.move_to(0, y_0)
+        ctx.line_to(size[0], y_0)
+        
+        ctx.set_source_rgb(0.0, 0.0, 0.0)
+        ctx.select_font_face("Helvetica",
+                cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD)
+        ctx.set_font_size(20)
+        #x_bearing, y_bearing, width, height = ctx.text_extents("itchie")[:4]
+        rule_cnt = 0
+        ctx.move_to(100, size[1]/10 + rule_cnt*40)
+        ctx.show_text("axiom ="+axiom)
+        for r in rules: 
+            rule_cnt+=1
+            ctx.move_to(100, size[1]/10 + rule_cnt*40)
+            ctx.show_text(r+"-->"+rules[r])
+        ctx.translate(x_0, y_0)
         ctx.scale(scale_factor, scale_factor)
-        #ctx.rotate(- pi / 2)
         ctx.append_path(path)
         ctx.stroke()
-        
         surf.finish()
 
         # I am still confused why the png surface is different . . .
         if ext == "png":
             surf.write_to_png(filename)
 
-
 if __name__ == "__main__":
-    val = 2
     unit = 10
     scale_factor = 1
 
-    er = ExpandRules("[gr]a++", {"F":"<F>", "a":"F[+x]FFb", "b":"F[-y]Fa", "x":"a", "y":"b", "r":"F[pFq]FFl", "l":"F[mFw]FFr", "q":"l", "w":"r"})
+    axiom = "[|r]a++"
+    print "axiom =", axiom
+    rules = {"F":"<F>", 
+             "a":"F[+x]FFb", 
+             "b":"F[-y]Fa", 
+             "x":"a", "y":"b", 
+             "r":"F[{Fq]FFl", 
+             "l":"F[}Fw]FFr", 
+             "q":"l", 
+             "w":"r"}
+    for r in rules: print r, "-->", rules[r]
+    draws = {"F":"ctx.rel_line_to(unit,0)",
+              "[":"push_ctx(ctx)",
+              "]":"pop_ctx(ctx)",
+              ">":"ctx.scale(scale_factor/1.36, scale_factor/1.36)",
+              "<":"ctx.scale(scale_factor*1.36, scale_factor*1.36)",
+              "|":"ctx.rotate(pi)",
+              "-":"ctx.rotate(- 3*pi / 8)",
+              "+":"ctx.rotate(+ pi / 4)",
+              "{":"ctx.rotate(+ pi / 8)",
+              "}":"ctx.rotate(- pi / 12)"}
     
-    rr = RenderRules({"F":"ctx.rel_line_to(unit,0)",
-                      "[":"push_ctx(ctx)",
-                      "]":"pop_ctx(ctx)",
-                      ">":"ctx.scale(scale_factor/1.36, scale_factor/1.36)",
-                      "<":"ctx.scale(scale_factor*1.36, scale_factor*1.36)",
-                      "g":"ctx.rotate(pi)",
-                      "-":"ctx.rotate(- 3*pi / 8)",
-                      "+":"ctx.rotate(+ pi / 4)",
-                      "p":"ctx.rotate(+ pi / 8)",
-                      "m":"ctx.rotate(- pi / 12)"})
+    er = ExpandRules(axiom, rules)
+    
+    rr = RenderRules(draws)
 
-    rr.renderString(er.nIterations(28), "plan28.svg", size=(1000, 1000))
+    rr.renderString(er.nIterations(12), "plan12.pdf", size=(1024, 1024))
 
                   
