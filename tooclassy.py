@@ -82,14 +82,30 @@ class RenderRules(dict):
         ctx.select_font_face("Helvetica",
                 cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD)
         ctx.set_font_size(20)
-        #x_bearing, y_bearing, width, height = ctx.text_extents("itchie")[:4]
         rule_cnt = 0
         ctx.move_to(100, size[1]/10 + rule_cnt*40)
-        ctx.show_text("axiom ="+axiom)
+        ctx.show_text("axiom = "+axiom)
         for r in rules: 
             rule_cnt+=1
             ctx.move_to(100, size[1]/10 + rule_cnt*40)
-            ctx.show_text(r+"-->"+rules[r])
+            ctx.show_text(r+u' --> '+rules[r])
+        draw_cnt = 0
+        for d in draws:
+            draw_cnt+=1
+            ctx.move_to(100, y_0 + draw_cnt*40)
+            if 'rot' in draws[d]:
+                ctx.show_text(d+' == rotate for '+draws[d][11:len(draws[d])-1])
+            elif 'push' in draws[d]:
+                ctx.show_text(d+' == push')
+            elif 'pop' in draws[d]:
+                ctx.show_text(d+' == pop')
+            elif 'line' in draws[d]:
+                ctx.show_text(d+' == draw line')
+            elif 'scale' in draws[d]:
+                if '/' in draws[d]:
+                    ctx.show_text(d+' == scale down by '+draws[d][42:len(draws[d])-1])
+                if '*' in draws[d]:
+                    ctx.show_text(d+' == scale up by '+draws[d][42:len(draws[d])-1])
         ctx.translate(x_0, y_0)
         ctx.scale(scale_factor, scale_factor)
         ctx.append_path(path)
@@ -114,7 +130,7 @@ if __name__ == "__main__":
              "l":"F[}Fw]FFr", 
              "q":"l", 
              "w":"r"}
-    for r in rules: print r, "-->", rules[r]
+    for r in rules: print r, u"\u2192", rules[r]
     draws = {"F":"ctx.rel_line_to(unit,0)",
               "[":"push_ctx(ctx)",
               "]":"pop_ctx(ctx)",
@@ -131,5 +147,3 @@ if __name__ == "__main__":
     rr = RenderRules(draws)
 
     rr.renderString(er.nIterations(12), "plan12.pdf", size=(1024, 1024))
-
-                  
