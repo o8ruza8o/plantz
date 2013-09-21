@@ -20,7 +20,12 @@ def eoo(x):
     if (x % 2) == 0:
         return 1
     else:
-        return -1 
+        return -1
+
+def bracketStroke(ctx):
+    ctx.save()
+    if ctx.has_current_point: ctx.stroke()
+    ctx.restore()
 
 scale = 0.6
 location_list = []
@@ -31,10 +36,9 @@ def push_ctx(ctx):
     ctx.set_line_width(ctx.get_line_width()*scale)
     ctx.save()
     print "push", ctx.get_line_width(), colors_list[-1]
-
     
 def pop_ctx(ctx):
-    if ctx.has_current_point(): ctx.stroke()
+    bracketStroke(ctx)
     ctx.restore()
     print "pop", ctx.get_line_width(), colors_list[-1]
     ctx.move_to(*location_list.pop())
@@ -47,6 +51,18 @@ class CairoRenderer(object):
         self.rules = rules
         self.render_rules = render_rules
 
+    def calculatePath(self, instructions):
+        temp_surf = cairo.ImageSurface(cairo.FORMAT_A8, 1, 1)
+        ctx = cairo.Context(temp_surf)
+
+        ctx.move_to(0,0)
+        for instruction in instructions:
+            if instruction not in self:
+                continue
+            eval(self[instruction])
+
+        return ctx.copy_path(), ctx.path_extents()
+        
     def renderSVG(self, niterations, unit):
         # Expand the string out
         self.instructions = iterateExpandString(self.startString, self.rules, niterations)
@@ -77,8 +93,8 @@ class CairoRenderer(object):
             if x == '+': angle += pi/3
             elif x == '-': angle += -pi/3
             else:
-                x_lenght += unit*cos(angle) 
-                y_lenght += unit*sin(angle) 
+                x_lenght += unit*cos(angle)
+                y_lenght += unit*sin(angle)
                 if x_lenght > x_max: x_max = x_lenght
                 if y_lenght > y_max: y_max = y_lenght
                 if x_lenght < x_min: x_min = x_lenght
@@ -91,12 +107,12 @@ class CairoRenderer(object):
         print "x_max", x_max, "y_max", y_max
         print "x_min", x_min, "y_min", y_min
         print "x_start", x_start, "y_start", y_start
+
         # Magic
         for character in self.instructions:
             string_to_run = self.render_rules[character]
             print string_to_run
             eval(string_to_run)
-            
         ctx.stroke()
         surface.finish()
 
@@ -108,7 +124,7 @@ if __name__ == "__main__":
     d = {"F":"FF[-FF][+FF]"}
     #d = {"A":"BB[-BAAAAA][+BAAAAA]BB",
     #     "B":"BBBB"}
-    
+
     start_string = "BAAAAA"
     start_string = "F"
 
