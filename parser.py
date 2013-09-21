@@ -1,6 +1,6 @@
 import cairo
 from math import pi, sin, cos
-from  collections import OrderedDict
+from collections import OrderedDict
 
 def expandString(string, rule_dict):
     new_string = ""
@@ -21,16 +21,25 @@ def eoo(x):
         return 1
     else:
         return -1 
-    
+
+scale = 0.6
 location_list = []
+colors_list = [(0.9, 0.3, 0.3, 0.9)]
 def push_ctx(ctx):
     location_list.append(ctx.get_current_point())
+    colors_list.append(tuple(scale * c for c in colors_list[-1]))
+    ctx.set_line_width(ctx.get_line_width()*scale)
     ctx.save()
+    print "push", ctx.get_line_width(), colors_list[-1]
 
+    
 def pop_ctx(ctx):
+    if ctx.has_current_point(): ctx.stroke()
     ctx.restore()
+    print "pop", ctx.get_line_width(), colors_list[-1]
     ctx.move_to(*location_list.pop())
-
+    ctx.set_source_rgba(*colors_list.pop())
+    ctx.set_line_width(ctx.get_line_width()/scale)
 
 class CairoRenderer(object):
     def __init__(self, startString, rules, render_rules):
@@ -54,7 +63,8 @@ class CairoRenderer(object):
         print ctx.user_to_device(5,5)
 
         ctx.identity_matrix()
-        ctx.set_line_width(0.1)
+        ctx.set_line_width(1)
+        ctx.set_source_rgba(0.9, 0.3, 0.3, 1)
 
         # Calculate the extents we will go to by tracking the path
         angle = 0
@@ -84,11 +94,9 @@ class CairoRenderer(object):
         # Magic
         for character in self.instructions:
             string_to_run = self.render_rules[character]
-            # print string_to_run
+            print string_to_run
             eval(string_to_run)
             
-        #print dir(ctx)
-
         ctx.stroke()
         surface.finish()
 
@@ -97,22 +105,29 @@ if __name__ == "__main__":
     val = int(raw_input("Number of Iterations:"))
 
     #d = {"F":"FF-[[-F+F+F]+[+F-F-F]]"}
-    #d = {"F":"FF[-FF][+FF]"}
-    d = {"A":"BB[-BAAAAA][+BAAAAA]BB",
-         "B":"BBBB"}
+    d = {"F":"FF[-FF][+FF]"}
+    #d = {"A":"BB[-BAAAAA][+BAAAAA]BB",
+    #     "B":"BBBB"}
     
     start_string = "BAAAAA"
-    
-    ninet_deg_in_rad = str(22.5 * pi / 180)
+    start_string = "F"
+
+    angle_in_rad = str(22.5 * pi / 180)
 
     unit = 50
 
-    render_rules = {"A":"ctx.rel_line_to(%f,0)" % (1. * unit / (4**val)),
-                    "B":"ctx.rel_line_to(%f,0)" % (1. * unit / (4**val)),
+    # render_rules = {"A":"ctx.rel_line_to(%f,0)" % (1. * unit / (4**val)),
+    #                 "B":"ctx.rel_line_to(%f,0)" % (1. * unit / (4**val)),
+    #                 "[":"push_ctx(ctx)",
+    #                 "]":"pop_ctx(ctx)",
+    #                 "-":"ctx.rotate(-%s)" % angle_in_rad,
+    #                 "+":"ctx.rotate(+%s)" % angle_in_rad}
+
+    render_rules = {"F":"ctx.rel_line_to(%f,0)" % (1. * unit / (4**val)),
                     "[":"push_ctx(ctx)",
                     "]":"pop_ctx(ctx)",
-                    "-":"ctx.rotate(-%s)" % ninet_deg_in_rad,
-                    "+":"ctx.rotate(+%s)" % ninet_deg_in_rad}
+                    "-":"ctx.rotate(-%s)" % angle_in_rad,
+                    "+":"ctx.rotate(+%s)" % angle_in_rad}
 
     cr = CairoRenderer(start_string, d, render_rules)
     ctx = cr.renderSVG(int(val), unit)
