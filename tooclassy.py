@@ -1,11 +1,9 @@
 import cairo, os
 from math import pi
-
 from pathTools import unpackPath, pointsStats, rootStem
 
 skie_bleu  = (0. /255,    146./ 255, 178./255)
 sun_yeller = (255. / 255, 202. / 255, 61./255)
-
 
 location_list = []
 def push_ctx(ctx):
@@ -212,7 +210,5 @@ if __name__ == "__main__":
               "}":"ctx.rotate(- pi / 12)"}
     
     er = ExpandRules(axiom, rules)
-    
     rr = RenderRules(draws)
-
-    rr.renderString(er.nIterations(12), "plan12.pdf", size=(1024, 1024))
+    rr.renderString(er.nIterations(12), "plant.svg", size=(1024, 1024))
