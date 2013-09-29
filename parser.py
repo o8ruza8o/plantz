@@ -13,41 +13,52 @@ def iterateExpandString(string, rule_dict, n):
         string = expandString(string, rule_dict)
     return string
 
-bool = 1
-def bracketStroke(ctx):
-    ctx.save()
-    if (ctx.has_current_point and bool): ctx.stroke()
-    ctx.restore()
-
+simulationFlag = 1
 scale = 0.8
+def maybeStroke(ctx):
+    # Check if we have a current point
+    if (ctx.has_current_point() and simulationFlag):
+        # If so save it, stroke, then move back there
+        # so the next code traces forward from it.
+        pointBefore = ctx.get_current_point()
+        ctx.stroke()
+        ctx.move_to(*pointBefore)
+
 location_list = []
 colors_list = [(57/256., 27/256., 57/256., 1)]
 def push_ctx(ctx):
     location_list.append(ctx.get_current_point())
-    rgba = tuple(c/scale for c in colors_list[-1][0:3]) + (colors_list[-1][3]*scale,)
+    maybeStroke(ctx)
+    # Current rgba can be gotten from ctx.get_source().get_rgba() Refactor? Y
+    rgba = tuple(c / scale for c in colors_list[-1][0:3]) + (colors_list[-1][3]*scale,)
+    ctx.set_source_rgba(*rgba)            # <-- This line was missing.
     colors_list.append(rgba)
     ctx.set_line_width(ctx.get_line_width()*scale)
     ctx.save()
-    
+
 def pop_ctx(ctx):
-    bracketStroke(ctx)
+    maybeStroke(ctx)
     ctx.restore()
     ctx.move_to(*location_list.pop())
     ctx.set_source_rgba(*colors_list.pop())
     ctx.set_line_width(ctx.get_line_width()/scale)
 
 class CairoRenderer(object):
-    def __init__(self, startString, rules, render_rules, x_start, y_start):
-        self.startString = startString
-        self.rules = rules
+    def __init__(self, startString, string_rules, render_rules, x_start, y_start):
+        self.startString  = startString
+        self.string_rules = string_rules
         self.render_rules = render_rules
         self.x_start = x_start 
         self.y_start = y_start
-        
+
+    def expandString(self, niterations):
+        return iterateExpandString(self.startString, self.string_rules, niterations)
+
     def renderSVG(self, niterations):
         # Expand the string out
-        self.instructions = iterateExpandString(self.startString, self.rules, niterations)
-        #print self.instructions
+        instructions = self.expandString(niterations)
+
+        # print instructions
 
         # initilize the cairo bullshitzen
         width, height = (512, 512)
@@ -59,61 +70,63 @@ class CairoRenderer(object):
         ctx.set_source_rgba(57/256., 27/256., 57/256., 1)
         ctx.move_to(self.x_start, self.y_start)
 
+        # Do an initial context push to set the colors and line-widths etc
+        push_ctx(ctx)
+
         # Magic
-        for character in self.instructions:
+        for character in instructions:
             string_to_run = self.render_rules[character]
-            # print string_to_run
+            #print character, "-->", string_to_run
             eval(string_to_run)
-            
+
+        # Do a final pop to clean up the last path ends.
+        pop_ctx(ctx)
+
         surface.finish()
         return ctx.path_extents()
 
     def NOrenderSVG(self, niterations):
-        global bool 
-        bool = 0
+        global simulationFlag
+        simulationFlag = 0
         extents = self.renderSVG(niterations)
-        bool = 1
+        simulationFlag = 1
         return extents
+
+def makeSomeRules(length, angle):
+    rules = {"A":"ctx.rel_line_to(%f,0)" % length,
+             "B":"ctx.rel_line_to(%f,0)" % length,
+             "[":"push_ctx(ctx)",
+             "]":"pop_ctx(ctx)",
+             "-":"ctx.rotate(%f)" % -angle,
+             "+":"ctx.rotate(%f)" % angle,
+             "|":"ctx.rotate(%f)" % -(pi/2.0)}
+    return rules
 
 if __name__ == "__main__":
     val = int(raw_input("Number of Iterations: "))
 
-    d = {"X":"F[+X]F[-X]+X",
-         "F":"FF"}
+    string_rules = {"A":"BB[-BAAAAA][+BAAAAA]",
+                    "B":"BBBB"}
 
-    start_string = "|X"
+    start_string = "|AAAAA"
 
-    angle_in_rad = str(20 * pi / 180)
-    unit = 100.0
+    angle_in_rad = 22.5 * pi / 180
+    unit = 1.0
 
-    render_rules = {"F":"ctx.rel_line_to(%f,0)" % unit,
-                    "X":"ctx.rel_line_to(%f,0)" % 0.0,
-                    "[":"push_ctx(ctx)",
-                    "]":"pop_ctx(ctx)",
-                    "-":"ctx.rotate(-%s)" % angle_in_rad,
-                    "+":"ctx.rotate(+%s)" % angle_in_rad,
-                    "|":"ctx.rotate(-%f)" % (pi/2.0)}
-
-    cr = CairoRenderer(start_string, d, render_rules, 0.0, 0.0)
+    render_rules = makeSomeRules(unit, angle_in_rad)
+    cr = CairoRenderer(start_string, string_rules, render_rules, 0, 0)
     xmin, ymin, xmax, ymax = cr.NOrenderSVG(int(val))
     x_extent = xmax - xmin
     y_extent = ymax - ymin
     
     # Compute the scale and rescale unit
-    scale_factor = 0.9*min(512.0 / x_extent, 512.0 / y_extent)
-    unit = unit * scale_factor
+    rescale_factor = 0.9*min(512.0 / x_extent, 512.0 / y_extent)
+    unit = unit * rescale_factor
 
-    # Compute new value for recentering
-    x_0 = (512.0 - (xmin+xmax)* scale_factor)/2.
-    y_0 = (512.0 - (ymin+ymax)* scale_factor)/2.
+    # Compute new start point for recentering
+    x_0 = (512. - (xmin+xmax)* rescale_factor)/2.
+    y_0 = (512.0 - (ymin+ymax)* rescale_factor)/2.
 
-    render_rules = {"F":"ctx.rel_line_to(%f,0)" % unit,
-                    "X":"ctx.rel_line_to(%f,0)" % 0.0,
-                    "[":"push_ctx(ctx)",
-                    "]":"pop_ctx(ctx)",
-                    "-":"ctx.rotate(-%s)" % angle_in_rad,
-                    "+":"ctx.rotate(+%s)" % angle_in_rad,
-                    "|":"ctx.rotate(-%f)" % (pi/2.0)}
-
-    cr = CairoRenderer(start_string, d, render_rules, y_0, x_0)
+    render_rules = makeSomeRules(unit, angle_in_rad)
+    cr = CairoRenderer(start_string, string_rules, render_rules, x_0, y_0)
     ctx = cr.renderSVG(int(val))
