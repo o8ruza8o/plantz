@@ -14,7 +14,6 @@ def iterateExpandString(string, rule_dict, n):
     return string
 
 simulationFlag = 1
-scale = 0.8
 def maybeStroke(ctx):
     # Check if we have a current point
     if (ctx.has_current_point() and simulationFlag):
@@ -24,15 +23,17 @@ def maybeStroke(ctx):
         ctx.stroke()
         ctx.move_to(*pointBefore)
 
+scale = 0.7
 location_list = []
-colors_list = [(57/256., 27/256., 57/256., 1)]
+colors_list = []
 def push_ctx(ctx):
     location_list.append(ctx.get_current_point())
     maybeStroke(ctx)
-    # Current rgba can be gotten from ctx.get_source().get_rgba() Refactor? Y
-    rgba = tuple(c / scale for c in colors_list[-1][0:3]) + (colors_list[-1][3]*scale,)
+
+    colors_list.append(ctx.get_source().get_rgba())
+    rgba = tuple(c / scale for c in colors_list[-1][0:3]) + (colors_list[-1][3]*0.95,)
     ctx.set_source_rgba(*rgba)            # <-- This line was missing.
-    colors_list.append(rgba)
+
     ctx.set_line_width(ctx.get_line_width()*scale)
     ctx.save()
 
@@ -57,14 +58,12 @@ class CairoRenderer(object):
     def renderSVG(self, niterations):
         # Expand the string out
         instructions = self.expandString(niterations)
-
         # print instructions
 
         # initilize the cairo bullshitzen
         width, height = (512, 512)
         surface = cairo.SVGSurface(open("test.svg", "w"), width, height)
         ctx = cairo.Context(surface)
-
         ctx.identity_matrix()
         ctx.set_line_width(6.0)
         ctx.set_source_rgba(57/256., 27/256., 57/256., 1)
