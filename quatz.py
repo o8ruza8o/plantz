@@ -22,4 +22,8 @@ class Quaterniaon(object):
 
         self.stuff * otherQuat.stuff
 
-    
+    @classmethod
+    def rotate(vector):
+        self.stuff * vector * self.conjugate().stuff   # is rotated vector
+
+
