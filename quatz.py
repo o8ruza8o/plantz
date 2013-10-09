@@ -1,29 +1,39 @@
 from math import sqrt
-class Quaterniaon(object):
-    def __init__(w, x, y, z):
-        self.w = w
-        self.xyz = array([x,y,z], dtype=float64)
+from numpy import *
 
-    @classmethod
-    def normalize():
-        mag = sqrt(w*w + sum(self.xyz**2))
-        self.w /= mag
-        self.xyz /= mag
+class Quaternion(object):
+    def __init__(self, w, x, y, z):
+        self.wxyz = array([w, x,y,z], dtype=float64)
+        self.w = self.wxyz[0:1]
+        self.xyz = self.wxyz[1:4]
+
+    def normalize(self):
+        mag = sqrt(dot(self.wxyz, self.wxyz))
+        self.wxyz /= mag
 
     @classmethod
     def conjugate():
-        self.w = self.w
-        self.xyz = -self.xyz
+        self.w[:] = self.w
+        self.xyz[:] = -self.xyz
 
     @classmethod
     def __mult__(otherQuat):
         if type(otherQuat) is not "Quaternion":
             otherQuat = Quaternion(otherQuat, 0, 0, 0)
 
-        self.stuff * otherQuat.stuff
+        w0 = self.w 
+        x0, y0, z0 = self.xyz
+        w1 =  otherQuat.w
+        x1, y1, z1 = otherQuat.xyz
+        return array([-x1*x0 - y1*y0 - z1*z0 + w1*w0,
+                       x1*w0 + y1*z0 - z1*y0 + w1*x0,
+                      -x1*z0 + y1*w0 + z1*x0 + w1*y0,
+                       x1*y0 - y1*x0 + z1*w0 + w1*z0], dtype=float64)
 
-    @classmethod
+    @classmethod                # applies the q-rotation to vector
     def rotate(vector):
-        self.stuff * vector * self.conjugate().stuff   # is rotated vector
-
+        vecQuat = Quaternion(0, vector)
+        product = self * vecQuat * self.conjugate() # rotated vecQuat
+ 
+	return product.xyz
 
