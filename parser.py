@@ -104,10 +104,10 @@ def makeSomeRules(length, angle):
 if __name__ == "__main__":
     val = int(raw_input("Number of Iterations: "))
 
-    string_rules = {"A":"BB[-BAAAAA][+BAAAAA]",
-                    "B":"BBBB"}
+    string_rules = {"A":"B-[[A]+A]+B[+BA]-A",
+                    "B":"BB"}
 
-    start_string = "|AAAAA"
+    start_string = "|A"
 
     angle_in_rad = 22.5 * pi / 180
     unit = 1.0

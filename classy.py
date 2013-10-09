@@ -1,4 +1,4 @@
-import cairo, os
+# import cairo, os
 from math import pi
 
 location_list = []
